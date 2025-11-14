@@ -38,10 +38,38 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Always start logged out on page load/refresh
-    localStorage.removeItem('token');
-    setUser(null);
-    setCart([]);
+    // Check for existing token and restore user session
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        // Decode JWT token to extract user information
+        const base64Url = token.split('.')[1];
+        const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+        const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+          return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+        }).join(''));
+
+        const decodedToken = JSON.parse(jsonPayload);
+
+        // Check if token is expired
+        if (decodedToken.exp * 1000 > Date.now()) {
+          // Token is valid, restore user
+          setUser({
+            id: decodedToken.id,
+            email: decodedToken.email,
+            role: decodedToken.role,
+            name: decodedToken.role === 'admin' ? 'Admin User' : 'John Doe'
+          });
+        } else {
+          // Token expired, remove it
+          localStorage.removeItem('token');
+        }
+      } catch (error) {
+        // Invalid token, remove it
+        console.error('Failed to decode token:', error);
+        localStorage.removeItem('token');
+      }
+    }
     setLoading(false);
 
     const handleHashChange = () => {
