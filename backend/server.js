@@ -188,6 +188,123 @@ app.post('/api/auth/reset-password', (req, res) => {
     res.json({ message: 'Password reset successful' });
 });
 
+// User Management Routes
+app.get('/api/users', authenticateToken, isAdmin, (req, res) => {
+    // Return users without password field
+    const usersWithoutPasswords = users.map(({ password, ...user }) => user);
+    res.json({ users: usersWithoutPasswords });
+});
+
+app.post('/api/users', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const { email, password, name, role = 'user' } = req.body;
+
+        // Validate required fields
+        if (!email || !password || !name) {
+            return res.status(400).json({ error: 'Email, password, and name are required' });
+        }
+
+        // Check if user exists
+        if (users.find(u => u.email === email)) {
+            return res.status(400).json({ error: 'User already exists' });
+        }
+
+        // Validate role
+        if (!['user', 'admin'].includes(role)) {
+            return res.status(400).json({ error: 'Role must be either "user" or "admin"' });
+        }
+
+        // Hash password
+        const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Create user
+        const newUser = {
+            id: users.length > 0 ? Math.max(...users.map(u => u.id)) + 1 : 1,
+            email,
+            password: hashedPassword,
+            name,
+            role
+        };
+
+        users.push(newUser);
+
+        res.status(201).json({
+            message: 'User created successfully',
+            user: {
+                id: newUser.id,
+                email: newUser.email,
+                name: newUser.name,
+                role: newUser.role
+            }
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to create user' });
+    }
+});
+
+app.put('/api/users/:id', authenticateToken, isAdmin, async (req, res) => {
+    try {
+        const userId = parseInt(req.params.id);
+        const { email, password, name, role } = req.body;
+
+        const userIndex = users.findIndex(u => u.id === userId);
+
+        if (userIndex === -1) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        // Check if email is being changed and if it's already taken
+        if (email && email !== users[userIndex].email) {
+            if (users.find(u => u.email === email)) {
+                return res.status(400).json({ error: 'Email already in use' });
+            }
+        }
+
+        // Validate role if provided
+        if (role && !['user', 'admin'].includes(role)) {
+            return res.status(400).json({ error: 'Role must be either "user" or "admin"' });
+        }
+
+        // Update user fields
+        if (email) users[userIndex].email = email;
+        if (name) users[userIndex].name = name;
+        if (role) users[userIndex].role = role;
+        if (password) {
+            users[userIndex].password = await bcrypt.hash(password, 10);
+        }
+
+        const { password: _, ...userWithoutPassword } = users[userIndex];
+
+        res.json({
+            message: 'User updated successfully',
+            user: userWithoutPassword
+        });
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to update user' });
+    }
+});
+
+app.delete('/api/users/:id', authenticateToken, isAdmin, (req, res) => {
+    const userId = parseInt(req.params.id);
+
+    // Prevent deleting yourself
+    if (userId === req.user.id) {
+        return res.status(400).json({ error: 'Cannot delete your own account' });
+    }
+
+    const userIndex = users.findIndex(u => u.id === userId);
+
+    if (userIndex === -1) {
+        return res.status(404).json({ error: 'User not found' });
+    }
+
+    users.splice(userIndex, 1);
+
+    // Also clean up user's cart and orders
+    delete carts[userId];
+
+    res.json({ message: 'User deleted successfully' });
+});
 
 // Product Routes
 app.get('/api/products', (req, res) => {
