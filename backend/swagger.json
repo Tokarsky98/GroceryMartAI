@@ -243,6 +243,31 @@
                 }
             }
         },
+        "/products/reset": {
+            "post": {
+                "summary": "Reset products database to initial 12 products",
+                "tags": ["Products"],
+                "security": [{ "bearerAuth": [] }],
+                "responses": {
+                    "200": {
+                        "description": "Database reset successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": { "type": "string" },
+                                        "productsCount": { "type": "integer" },
+                                        "nextId": { "type": "integer" }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "403": { "description": "Admin access required" }
+                }
+            }
+        },
         "/products/{id}": {
             "get": {
                 "summary": "Get product by ID",

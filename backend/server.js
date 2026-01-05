@@ -37,7 +37,8 @@ let users = [
     }
 ];
 
-let products = [
+// Initial products (IDs 1-12)
+const INITIAL_PRODUCTS = [
     { id: 1, name: 'Fresh Apples', description: 'Lorem ipsum dolor sit amet, consectetur adipiscing elit.', price: 4.99, category: 'Fruits', image: 'https://picsum.photos/seed/apple/300/200', stock: 50 },
     { id: 2, name: 'Organic Bananas', description: 'Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.', price: 2.99, category: 'Fruits', image: 'https://picsum.photos/seed/banana/300/200', stock: 30 },
     { id: 3, name: 'Fresh Milk', description: 'Ut enim ad minim veniam, quis nostrud exercitation ullamco.', price: 3.49, category: 'Dairy', image: 'https://picsum.photos/seed/milk/300/200', stock: 20 },
@@ -51,6 +52,9 @@ let products = [
     { id: 11, name: 'Salmon Fillet', description: 'In reprehenderit in voluptate velit esse cillum dolore eu fugiat.', price: 12.99, category: 'Seafood', image: 'https://picsum.photos/seed/salmon/300/200', stock: 8 },
     { id: 12, name: 'Pasta', description: 'Nulla pariatur excepteur sint occaecat cupidatat non proident.', price: 1.99, category: 'Pantry', image: 'https://picsum.photos/seed/pasta/300/200', stock: 60 }
 ];
+
+let products = [...INITIAL_PRODUCTS];
+let nextProductId = 13; // Auto-incrementing ID counter
 
 let carts = {};
 let orders = [];
@@ -370,19 +374,30 @@ app.get('/api/products/search', (req, res) => {
 
 app.get('/api/products/:id', (req, res) => {
     const product = products.find(p => p.id === parseInt(req.params.id));
-    
+
     if (!product) {
         return res.status(404).json({ error: 'Product not found' });
     }
-    
+
     res.json(product);
+});
+
+// Database reset endpoint - resets products to initial 12 and resets ID counter
+app.post('/api/products/reset', authenticateToken, isAdmin, (req, res) => {
+    products = [...INITIAL_PRODUCTS];
+    nextProductId = 13;
+    res.json({
+        message: 'Database reset successfully',
+        productsCount: products.length,
+        nextId: nextProductId
+    });
 });
 
 app.post('/api/products', authenticateToken, isAdmin, (req, res) => {
     const { name, description, price, category, stock, image } = req.body;
-    
+
     const newProduct = {
-        id: products.length + 1,
+        id: nextProductId++,
         name,
         description,
         price: parseFloat(price),
@@ -390,7 +405,7 @@ app.post('/api/products', authenticateToken, isAdmin, (req, res) => {
         stock: parseInt(stock),
         image: image || `https://picsum.photos/seed/${Date.now()}/300/200`
     };
-    
+
     products.push(newProduct);
     res.status(201).json(newProduct);
 });
@@ -413,11 +428,11 @@ app.put('/api/products/:id', authenticateToken, isAdmin, (req, res) => {
 
 app.delete('/api/products/:id', authenticateToken, isAdmin, (req, res) => {
     const productIndex = products.findIndex(p => p.id === parseInt(req.params.id));
-    
+
     if (productIndex === -1) {
         return res.status(404).json({ error: 'Product not found' });
     }
-    
+
     products.splice(productIndex, 1);
     res.json({ message: 'Product deleted successfully' });
 });
