@@ -349,6 +349,31 @@
                 }
             }
         },
+        "/cart/clear": {
+            "delete": {
+                "summary": "Clear all items from cart",
+                "description": "Remove all products from the user's cart",
+                "tags": ["Cart"],
+                "security": [{ "bearerAuth": [] }],
+                "responses": {
+                    "200": {
+                        "description": "Cart cleared successfully",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "type": "object",
+                                    "properties": {
+                                        "message": { "type": "string", "example": "Cart cleared successfully" },
+                                        "cart": { "type": "array", "items": {}, "example": [] }
+                                    }
+                                }
+                            }
+                        }
+                    },
+                    "401": { "description": "Access token required" }
+                }
+            }
+        },
         "/orders": {
             "get": {
                 "summary": "Get user orders",

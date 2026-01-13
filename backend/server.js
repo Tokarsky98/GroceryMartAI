@@ -520,14 +520,24 @@ app.put('/api/cart/update', authenticateToken, (req, res) => {
 
 app.delete('/api/cart/remove/:productId', authenticateToken, (req, res) => {
     const productId = parseInt(req.params.productId);
-    
+
     if (!carts[req.user.id]) {
         return res.status(404).json({ error: 'Cart not found' });
     }
-    
+
     carts[req.user.id] = carts[req.user.id].filter(item => item.productId !== productId);
-    
+
     res.json({ message: 'Item removed from cart', cart: carts[req.user.id] });
+});
+
+app.delete('/api/cart/clear', authenticateToken, (req, res) => {
+    if (!carts[req.user.id]) {
+        carts[req.user.id] = [];
+    } else {
+        carts[req.user.id] = [];
+    }
+
+    res.json({ message: 'Cart cleared successfully', cart: [] });
 });
 
 // Order Routes
